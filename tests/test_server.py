@@ -1,6 +1,6 @@
 import re
-import time
 
+from hurricane.kubernetes import K8sServerMetricsHandler
 from hurricane.testing import HurricanServerTest
 
 
@@ -215,10 +215,57 @@ class HurricanStartServerTests(HurricanServerTest):
         self.assertIn("Metric ID (request_counter) is already registered.", str(exception))
 
     @HurricanServerTest.cycle_server
+    def test_registration_metrics_wrong_key(self):
+        class TestWrongKey:
+            code = "test"
+
+        from hurricane.metrics import registry
+
+        registry.unregister(TestWrongKey)
+        out, err = self.driver.get_output(read_all=True)
+        self.assertIn(self.starting_message, out)
+
+    @HurricanServerTest.cycle_server
     def test_unregistering_metrics(self):
         from hurricane.metrics import registry
         from hurricane.metrics.requests import RequestCounterMetric
 
         registry.unregister(RequestCounterMetric)
+        out, err = self.driver.get_output(read_all=True)
+        self.assertIn(self.starting_message, out)
+
+    @HurricanServerTest.cycle_server
+    def test_duplicate_registration_webhooks(self):
+        from hurricane.webhooks import webhook_registry
+        from hurricane.webhooks.webhook_types import StartupWebhook
+
+        m = webhook_registry.get(StartupWebhook.code)
+
+        try:
+            webhook_registry.register(StartupWebhook)
+        except Exception as e:
+            exception = e
+        out, err = self.driver.get_output(read_all=True)
+        self.assertIn(m.code, out)
+        self.assertIn(self.starting_message, out)
+        self.assertIn("Webhook Code (startup) is already registered.", str(exception))
+
+    @HurricanServerTest.cycle_server
+    def test_registration_webhooks_wrong_key(self):
+        class TestWrongKey:
+            code = "test"
+
+        from hurricane.webhooks import webhook_registry
+
+        webhook_registry.unregister(TestWrongKey)
+        out, err = self.driver.get_output(read_all=True)
+        self.assertIn(self.starting_message, out)
+
+    @HurricanServerTest.cycle_server
+    def test_unregistering_webhooks(self):
+        from hurricane.webhooks import webhook_registry
+        from hurricane.webhooks.webhook_types import StartupWebhook
+
+        webhook_registry.unregister(StartupWebhook)
         out, err = self.driver.get_output(read_all=True)
         self.assertIn(self.starting_message, out)

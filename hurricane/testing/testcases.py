@@ -2,7 +2,12 @@ import tornado.web
 from django.test import SimpleTestCase
 
 from hurricane.testing.actors import HTTPClient, WebhookTestHandler
-from hurricane.testing.drivers import HurricaneAMQPDriver, HurricaneServerDriver, HurricaneWebhookServerDriver
+from hurricane.testing.drivers import (
+    HurricaneAMQPDriver,
+    HurricaneK8sServerDriver,
+    HurricaneServerDriver,
+    HurricaneWebhookServerDriver,
+)
 
 
 class HurricanBaseTest(SimpleTestCase):
@@ -70,6 +75,17 @@ class HurricaneWebhookServerTest(HurricanServerTest):
     def probe(self):
         host, port = self.driver.get_server_host_port(probe_port=True)
         return WebhookTestHandler()
+
+
+class HurricaneK8sServerTest(HurricanServerTest):
+    driver = HurricaneK8sServerDriver
+
+    @property
+    def probe(self):
+        host, port = self.driver.get_server_host_port(probe_port=True)
+        from hurricane.kubernetes import K8sServerMetricsHandler
+
+        return K8sServerMetricsHandler()
 
 
 class HurricaneAMQPTest(HurricanBaseTest):
