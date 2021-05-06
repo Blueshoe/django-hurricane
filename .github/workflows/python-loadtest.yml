@@ -1,0 +1,29 @@
+name: Load Test
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  load_test:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ 3.8, 3.9 ]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install locust
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: Run hurricane test server & locust load testing
+      run: |
+        nohup python manage.py serve > /dev/null 2>&1 & locust --headless -u 25 -r 5 --host http://localhost:8000 --run-time 2m
